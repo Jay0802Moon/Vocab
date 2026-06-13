@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Thinking Vocab</title>
+
+  <!-- PWA Meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="TF&S Vocab"/>
+  <meta name="theme-color" content="#1e1b4b"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+
+  <!-- PWA Manifest (inline) -->
+  <link rel="manifest" href="data:application/json,{
+    %22name%22:%22Thinking%2C%20Fast%20and%20Slow%20Vocab%22,
+    %22short_name%22:%22TF%26S%20Vocab%22,
+    %22start_url%22:%22.%22,
+    %22display%22:%22standalone%22,
+    %22background_color%22:%22%231e1b4b%22,
+    %22theme_color%22:%22%231e1b4b%22,
+    %22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231e1b4b'/%3E%3Ctext y='.9em' font-size='72' x='12'%3E🧠%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22any%22,%22type%22:%22image/svg+xml%22}]
+  }"/>
+
+  <!-- Apple Touch Icon (inline SVG as data URI) -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231e1b4b'/><text y='.9em' font-size='72' x='12'>🧠</text></svg>"/>
+
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f0f7;min-height:100vh;min-height:100dvh}
+    button{font-family:inherit;cursor:pointer}
+    input{font-family:inherit}
+
+    /* Card flip */
+    .flip-container{perspective:1200px;width:100%;max-width:560px;margin:0 auto}
+    .flip-card{position:relative;width:100%;min-height:340px;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.4,0,.2,1)}
+    .flip-card.flipped{transform:rotateY(180deg)}
+    .flip-front,.flip-back{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px;padding:28px}
+    .flip-front{background:linear-gradient(145deg,#1e1b4b,#312e81);display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 20px 60px rgba(49,46,129,.4)}
+    .flip-back{transform:rotateY(180deg);background:#fafaf9;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 60px rgba(0,0,0,.12)}
+
+    /* Scrollbar */
+    ::-webkit-scrollbar{height:4px;width:4px}
+    ::-webkit-scrollbar-thumb{background:#d4d4d8;border-radius:4px}
+
+    /* Safe areas */
+    .header{padding-top:max(28px, env(safe-area-inset-top, 28px))}
+    .body-pad{padding:24px 16px max(60px, calc(env(safe-area-inset-bottom,0px) + 24px))}
+
+    /* Progress bar fill animation */
+    .prog-fill{transition:width .4s ease}
+
+    /* Quiz option hover */
+    .quiz-opt:not(:disabled):hover{opacity:.85}
+
+    /* Tag scroll */
+    .tag-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+    .tag-scroll::-webkit-scrollbar{display:none}
+  </style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const VOCAB = [
+  // ── CORE CONCEPTS ──
+  {id:1,word:"heuristic",part:"n.",phonetic:"/hjʊˈrɪstɪk/",
+   definition:"A mental shortcut or rule of thumb that simplifies decision-making",
+   korean:"어림법, 발견적 방법",
+   bookContext:'"We often rely on heuristics — mental shortcuts — that serve us well most of the time, but lead us astray in others."',
+   chapter:"Ch. 11 · Anchoring",tags:["System 1","Core Concept"],difficulty:"hard"},
+  {id:2,word:"cognitive ease",part:"n. phrase",phonetic:"/ˈkɒɡnɪtɪv iːz/",
+   definition:"The sense of fluency and comfort when thinking feels effortless",
+   korean:"인지적 편안함",
+   bookContext:'"Cognitive ease... is both a cause and a consequence of a pleasant feeling."',
+   chapter:"Ch. 5 · Cognitive Ease",tags:["System 1","Core Concept"],difficulty:"medium"},
+  {id:3,word:"priming",part:"n.",phonetic:"/ˈpraɪmɪŋ/",
+   definition:"The effect of an earlier stimulus on how you interpret or respond to a later one",
+   korean:"점화 효과",
+   bookContext:'"The idea of priming suggests that reminding people of their mortality affects their behavior."',
+   chapter:"Ch. 4 · The Associative Machine",tags:["System 1","Bias"],difficulty:"medium"},
+  {id:4,word:"anchoring effect",part:"n. phrase",phonetic:"/ˈæŋkərɪŋ ɪˌfekt/",
+   definition:"The tendency to rely too heavily on the first piece of information encountered",
+   korean:"닻 내리기 효과",
+   bookContext:'"Any number you consider as a possible answer will induce an anchoring effect."',
+   chapter:"Ch. 11 · Anchoring",tags:["Bias","Judgment"],difficulty:"easy"},
+  {id:5,word:"availability heuristic",part:"n. phrase",phonetic:"/əˌveɪləˈbɪlɪti hjʊˈrɪstɪk/",
+   definition:"Judging frequency or probability by how easily examples come to mind",
+   korean:"가용성 어림법",
+   bookContext:"\"The availability heuristic... substitutes one question for another: 'How many instances come to mind?' for 'How likely is it?'\"",
+   chapter:"Ch. 12 · Availability",tags:["Heuristic","Bias"],difficulty:"hard"},
+  {id:6,word:"overconfidence",part:"n.",phonetic:"/ˌoʊvərˈkɒnfɪdəns/",
+   definition:"Excessive faith in one's own answers, judgments, or predictions",
+   korean:"과잉확신, 자만",
+   bookContext:'"Overconfidence is fed by the illusory certainty of hindsight."',
+   chapter:"Ch. 24 · The Engine of Capitalism",tags:["Bias","Judgment"],difficulty:"easy"},
+  {id:7,word:"loss aversion",part:"n. phrase",phonetic:"/lɒs əˈvɜːrʒən/",
+   definition:"The tendency to feel losses more intensely than equivalent gains",
+   korean:"손실 회피 성향",
+   bookContext:'"The response to losses is stronger than the response to corresponding gains — this is loss aversion."',
+   chapter:"Ch. 26 · Prospect Theory",tags:["Core Concept","Prospect Theory"],difficulty:"easy"},
+  {id:8,word:"endowment effect",part:"n. phrase",phonetic:"/ɪnˈdaʊmənt ɪˌfekt/",
+   definition:"Valuing something more simply because you own it",
+   korean:"보유 효과",
+   bookContext:'"The endowment effect: people demand much more to give up an object than they would be willing to pay to acquire it."',
+   chapter:"Ch. 27 · The Endowment Effect",tags:["Bias","Prospect Theory"],difficulty:"medium"},
+  {id:9,word:"regression to the mean",part:"n. phrase",phonetic:"/rɪˈɡreʃən tə ðə miːn/",
+   definition:"Extreme measurements tend to be followed by more average ones",
+   korean:"평균으로의 회귀",
+   bookContext:'"Regression to the mean... is always at work, yet we are often blind to it."',
+   chapter:"Ch. 17 · Regression to the Mean",tags:["Statistics","Fallacy"],difficulty:"medium"},
+  {id:10,word:"narrative fallacy",part:"n. phrase",phonetic:"/ˈnærətɪv ˈfæləsi/",
+   definition:"The urge to create coherent causal stories from past events, even when random",
+   korean:"서사 오류",
+   bookContext:'"The narrative fallacy addresses our limited ability to look at sequences of facts without weaving an explanation into them."',
+   chapter:"Ch. 19 · The Illusion of Understanding",tags:["Fallacy","System 1"],difficulty:"hard"},
+  {id:11,word:"substitution",part:"n.",phonetic:"/ˌsʌbstɪˈtjuːʃən/",
+   definition:"Replacing a hard question with a simpler related one without noticing",
+   korean:"대체 (질문 대체 현상)",
+   bookContext:'"System 1 often answers an easier question than the one that was asked, and rarely notices the substitution."',
+   chapter:"Ch. 9 · Answering an Easier Question",tags:["System 1","Core Concept"],difficulty:"medium"},
+  {id:12,word:"denominator neglect",part:"n. phrase",phonetic:"/dɪˈnɒmɪneɪtər nɪˈɡlekt/",
+   definition:"Focusing on the number of cases rather than their proportion",
+   korean:"분모 무시",
+   bookContext:'"Denominator neglect helps explain why low-probability risks are so often over-weighted."',
+   chapter:"Ch. 29 · The Fourfold Pattern",tags:["Bias","Statistics"],difficulty:"hard"},
+  {id:13,word:"framing effect",part:"n. phrase",phonetic:"/ˈfreɪmɪŋ ɪˌfekt/",
+   definition:"Different presentations of the same information lead to different decisions",
+   korean:"틀 짜기 효과 (프레이밍 효과)",
+   bookContext:'"The framing effect shows that our preferences are not stable across descriptions of the same reality."',
+   chapter:"Ch. 34 · Frames and Reality",tags:["Bias","Core Concept"],difficulty:"easy"},
+  {id:14,word:"conjunction fallacy",part:"n. phrase",phonetic:"/kənˈdʒʌŋkʃən ˈfæləsi/",
+   definition:"Believing that two events together are more probable than one alone",
+   korean:"결합 오류",
+   bookContext:"\"The Linda problem demonstrates the conjunction fallacy: 'feminist bank teller' rated more probable than 'bank teller.'\"",
+   chapter:"Ch. 15 · Linda",tags:["Fallacy","Judgment"],difficulty:"medium"},
+  {id:15,word:"affect heuristic",part:"n. phrase",phonetic:"/əˈfekt hjʊˈrɪstɪk/",
+   definition:"Using your current emotional state as the basis for judgments and decisions",
+   korean:"감정 어림법",
+   bookContext:'"In the affect heuristic, people let their likes and dislikes determine their beliefs about the world."',
+   chapter:"Ch. 13 · Availability, Emotion, and Risk",tags:["Heuristic","Emotion"],difficulty:"hard"},
+  {id:16,word:"WYSIATI",part:"acronym",phonetic:"/ˈwɪziːæti/",
+   definition:"What You See Is All There Is — System 1 builds its best story from available info, ignoring what it doesn't know",
+   korean:"보이는 것이 전부다",
+   bookContext:'"WYSIATI explains why we can think fast... System 1 bets on the most coherent story, not the most probable."',
+   chapter:"Ch. 7 · A Machine for Jumping to Conclusions",tags:["System 1","Core Concept"],difficulty:"medium"},
+  {id:17,word:"hindsight bias",part:"n. phrase",phonetic:"/ˈhaɪndˌsaɪt ˈbaɪəs/",
+   definition:"The tendency to see past events as having been predictable",
+   korean:"사후확신 편향",
+   bookContext:'"Hindsight bias makes surprises vanish... we cannot reconstruct what we knew before."',
+   chapter:"Ch. 19 · The Illusion of Understanding",tags:["Bias","Fallacy"],difficulty:"easy"},
+  {id:18,word:"sunk cost fallacy",part:"n. phrase",phonetic:"/sʌŋk kɒst ˈfæləsi/",
+   definition:"Continuing an endeavor because of past investment, not future value",
+   korean:"매몰 비용 오류",
+   bookContext:'"The sunk-cost fallacy keeps people for too long in poor jobs, unhappy marriages, and unpromising research projects."',
+   chapter:"Ch. 32 · Keeping Score",tags:["Fallacy","Prospect Theory"],difficulty:"easy"},
+  {id:19,word:"planning fallacy",part:"n. phrase",phonetic:"/ˈplænɪŋ ˈfæləsi/",
+   definition:"Underestimating costs and time, overestimating benefits of future plans",
+   korean:"계획 오류",
+   bookContext:'"The planning fallacy... describes plans and forecasts that are unrealistically close to best-case scenarios."',
+   chapter:"Ch. 23 · The Outside View",tags:["Fallacy","Bias"],difficulty:"medium"},
+  {id:20,word:"peak-end rule",part:"n. phrase",phonetic:"/piːk ɛnd ruːl/",
+   definition:"We judge experiences by their peak moment and how they ended, not their average",
+   korean:"절정·끝 법칙",
+   bookContext:'"The peak-end rule: the global retrospective rating was determined by the average of the peak intensity and the intensity at the end."',
+   chapter:"Ch. 35 · Two Selves",tags:["Core Concept","Experience"],difficulty:"medium"},
+
+  // ── SYSTEM 1 & 2 ──
+  {id:21,word:"System 1",part:"n.",phonetic:"/ˈsɪstəm wʌn/",
+   definition:"The fast, automatic, intuitive mode of thinking that operates without effort",
+   korean:"시스템 1 (빠른 사고)",
+   bookContext:'"System 1 operates automatically and quickly, with little or no effort and no sense of voluntary control."',
+   chapter:"Ch. 1 · The Characters of the Story",tags:["System 1","Core Concept"],difficulty:"easy"},
+  {id:22,word:"System 2",part:"n.",phonetic:"/ˈsɪstəm tuː/",
+   definition:"The slow, deliberate, effortful mode of thinking used for complex reasoning",
+   korean:"시스템 2 (느린 사고)",
+   bookContext:'"System 2 allocates attention to the effortful mental activities that demand it, including complex computations."',
+   chapter:"Ch. 1 · The Characters of the Story",tags:["System 2","Core Concept"],difficulty:"easy"},
+  {id:23,word:"associative activation",part:"n. phrase",phonetic:"/əˌsoʊsiətɪv ˌæktɪˈveɪʃən/",
+   definition:"One idea automatically triggers a cascade of related ideas in memory",
+   korean:"연상 활성화",
+   bookContext:'"Ideas that have been evoked trigger many other ideas, in a spreading cascade of activity in your brain."',
+   chapter:"Ch. 4 · The Associative Machine",tags:["System 1","Core Concept"],difficulty:"hard"},
+  {id:24,word:"cognitive strain",part:"n. phrase",phonetic:"/ˈkɒɡnɪtɪv streɪn/",
+   definition:"The effort and discomfort felt when System 2 is working hard",
+   korean:"인지적 긴장",
+   bookContext:'"Cognitive strain... mobilizes System 2, which is more likely to reject the intuitive answer suggested by System 1."',
+   chapter:"Ch. 5 · Cognitive Ease",tags:["System 2","Core Concept"],difficulty:"medium"},
+  {id:25,word:"attention",part:"n.",phonetic:"/əˈtenʃən/",
+   definition:"The limited mental resource that System 2 allocates to demanding tasks",
+   korean:"주의력",
+   bookContext:'"Attention is a resource that is allocated, not unlimited — and System 2 is its gatekeeper."',
+   chapter:"Ch. 2 · Attention and Effort",tags:["System 2","Core Concept"],difficulty:"easy"},
+  {id:26,word:"mental energy",part:"n. phrase",phonetic:"/ˈmentl ˈenədʒi/",
+   definition:"The psychological resource depleted by effortful thinking and self-control",
+   korean:"정신적 에너지",
+   bookContext:'"The most effortful forms of slow thinking are those that require you to think fast... mental energy is a real thing."',
+   chapter:"Ch. 2 · Attention and Effort",tags:["System 2","Core Concept"],difficulty:"easy"},
+  {id:27,word:"ego depletion",part:"n. phrase",phonetic:"/ˈiːɡoʊ dɪˈpliːʃən/",
+   definition:"The state of reduced self-control after exerting willpower",
+   korean:"자아 고갈",
+   bookContext:'"Ego depletion: an effort of will or self-control is tiring; if you have had to force yourself to do something, you are less willing to make an effort in the next task."',
+   chapter:"Ch. 3 · The Lazy Controller",tags:["System 2","Bias"],difficulty:"hard"},
+  {id:28,word:"flow",part:"n.",phonetic:"/floʊ/",
+   definition:"A state of effortless concentration where System 1 and 2 work in harmony",
+   korean:"몰입 (플로우)",
+   bookContext:'"In a state of flow... the experience itself is seamlessly automatic; there is no sense of control."',
+   chapter:"Ch. 2 · Attention and Effort",tags:["System 1","Experience"],difficulty:"medium"},
+
+  // ── BIASES ──
+  {id:29,word:"confirmation bias",part:"n. phrase",phonetic:"/ˌkɒnfəˈmeɪʃən ˈbaɪəs/",
+   definition:"The tendency to search for and favor information that confirms existing beliefs",
+   korean:"확증 편향",
+   bookContext:'"Contrary to the rules of philosophers of science, who advise testing hypotheses by trying to refute them, people seek data that are likely to be compatible with the beliefs they currently hold."',
+   chapter:"Ch. 7 · A Machine for Jumping to Conclusions",tags:["Bias","Judgment"],difficulty:"easy"},
+  {id:30,word:"representativeness heuristic",part:"n. phrase",phonetic:"/ˌreprɪˈzentətɪvnəs hjʊˈrɪstɪk/",
+   definition:"Judging probability by how much something resembles a typical example",
+   korean:"대표성 어림법",
+   bookContext:'"The representativeness heuristic... evaluates the probability of an uncertain event by the degree to which it resembles a typical case."',
+   chapter:"Ch. 14 · Tom W's Specialty",tags:["Heuristic","Judgment"],difficulty:"hard"},
+  {id:31,word:"base rate neglect",part:"n. phrase",phonetic:"/beɪs reɪt nɪˈɡlekt/",
+   definition:"Ignoring statistical background frequencies when making probability judgments",
+   korean:"기저율 무시",
+   bookContext:'"Subjects\' unwillingness to deduce the particular from the general was matched by their willingness to infer the general from the particular — base rates are neglected."',
+   chapter:"Ch. 14 · Tom W's Specialty",tags:["Bias","Statistics"],difficulty:"hard"},
+  {id:32,word:"stereotyping",part:"n.",phonetic:"/ˈsteriəˌtaɪpɪŋ/",
+   definition:"Applying group-level beliefs to individuals, sometimes leading to errors",
+   korean:"고정관념 적용",
+   bookContext:'"Stereotyping... is how System 1 represents categories of people and assigns judgments to individuals."',
+   chapter:"Ch. 14 · Tom W's Specialty",tags:["System 1","Bias"],difficulty:"easy"},
+  {id:33,word:"optimistic bias",part:"n. phrase",phonetic:"/ˌɒptɪˈmɪstɪk ˈbaɪəs/",
+   definition:"The tendency to overestimate the likelihood of positive outcomes for oneself",
+   korean:"낙관주의 편향",
+   bookContext:'"The optimistic bias may well be the most significant of the cognitive biases... it is both a blessing and a risk."',
+   chapter:"Ch. 24 · The Engine of Capitalism",tags:["Bias","Judgment"],difficulty:"medium"},
+  {id:34,word:"illusion of validity",part:"n. phrase",phonetic:"/ɪˈluːʒən əv vəˈlɪdɪti/",
+   definition:"Unwarranted confidence in predictions based on a consistent but possibly unreliable pattern",
+   korean:"타당성 환상",
+   bookContext:'"The illusion of validity... the confidence people have in their judgments is not related to their accuracy."',
+   chapter:"Ch. 20 · The Illusion of Validity",tags:["Bias","Judgment"],difficulty:"hard"},
+  {id:35,word:"illusion of understanding",part:"n. phrase",phonetic:"/ɪˈluːʒən əv ˌʌndəˈstændɪŋ/",
+   definition:"Believing we understand the past better than we actually do, because we impose causal stories",
+   korean:"이해의 환상",
+   bookContext:'"We believe we understand the past, which implies that the future should also be knowable — but this illusion of understanding is false comfort."',
+   chapter:"Ch. 19 · The Illusion of Understanding",tags:["Bias","Fallacy"],difficulty:"hard"},
+  {id:36,word:"halo effect",part:"n. phrase",phonetic:"/ˈheɪloʊ ɪˌfekt/",
+   definition:"The tendency for a positive impression in one area to influence judgments in other areas",
+   korean:"후광 효과",
+   bookContext:'"The halo effect increases the weight of first impressions, sometimes to the point that subsequent information is mostly wasted."',
+   chapter:"Ch. 7 · A Machine for Jumping to Conclusions",tags:["Bias","System 1"],difficulty:"easy"},
+  {id:37,word:"attribute substitution",part:"n. phrase",phonetic:"/ˈætrɪbjuːt ˌsʌbstɪˈtjuːʃən/",
+   definition:"Answering a simpler, related question instead of the hard one you were asked",
+   korean:"속성 대체",
+   bookContext:'"If a satisfactory answer to a hard question is not found quickly, System 1 will find a related question that is easier and will answer it."',
+   chapter:"Ch. 9 · Answering an Easier Question",tags:["System 1","Heuristic"],difficulty:"hard"},
+  {id:38,word:"intensity matching",part:"n. phrase",phonetic:"/ɪnˈtensɪti ˈmætʃɪŋ/",
+   definition:"Translating the magnitude of one scale onto another to answer a question",
+   korean:"강도 대응",
+   bookContext:'"Intensity matching: the translation of value across dimensions — e.g., how tall would Hitler be if his crimes were expressed as a height?"',
+   chapter:"Ch. 9 · Answering an Easier Question",tags:["System 1","Judgment"],difficulty:"hard"},
+  {id:39,word:"social proof",part:"n. phrase",phonetic:"/ˈsoʊʃəl pruːf/",
+   definition:"Using others' behavior as evidence of the correct course of action",
+   korean:"사회적 증거",
+   bookContext:'"The norm of conformity is powerful... the mere presence of others changes what we think is normal and correct."',
+   chapter:"Ch. 12 · Availability",tags:["Bias","System 1"],difficulty:"medium"},
+  {id:40,word:"status quo bias",part:"n. phrase",phonetic:"/ˈsteɪtəs kwoʊ ˈbaɪəs/",
+   definition:"The preference for the current state of affairs over change",
+   korean:"현상 유지 편향",
+   bookContext:'"Loss aversion creates an asymmetry that makes the current state of affairs... feel more attractive than alternatives."',
+   chapter:"Ch. 28 · Bad Events",tags:["Bias","Prospect Theory"],difficulty:"medium"},
+
+  // ── PROSPECT THEORY & DECISIONS ──
+  {id:41,word:"prospect theory",part:"n. phrase",phonetic:"/ˈprɒspekt ˈθɪəri/",
+   definition:"A model describing how people evaluate gains and losses relative to a reference point",
+   korean:"전망 이론",
+   bookContext:'"Prospect theory... describes the choices people make when outcomes are uncertain, replacing the normative model of expected utility."',
+   chapter:"Ch. 26 · Prospect Theory",tags:["Core Concept","Prospect Theory"],difficulty:"hard"},
+  {id:42,word:"reference point",part:"n. phrase",phonetic:"/ˈrefərəns pɔɪnt/",
+   definition:"The baseline against which gains and losses are measured",
+   korean:"기준점",
+   bookContext:'"The reference point is usually the current state of affairs... outcomes that are better than the reference are gains; below it are losses."',
+   chapter:"Ch. 26 · Prospect Theory",tags:["Prospect Theory","Core Concept"],difficulty:"medium"},
+  {id:43,word:"diminishing sensitivity",part:"n. phrase",phonetic:"/dɪˈmɪnɪʃɪŋ sensɪˈtɪvɪti/",
+   definition:"Each additional unit of gain or loss has less psychological impact than the previous one",
+   korean:"민감도 감소",
+   bookContext:'"Diminishing sensitivity applies to both gains and losses... the difference between $900 and $1,000 feels less than the difference between $100 and $200."',
+   chapter:"Ch. 26 · Prospect Theory",tags:["Prospect Theory","Core Concept"],difficulty:"hard"},
+  {id:44,word:"utility",part:"n.",phonetic:"/juːˈtɪlɪti/",
+   definition:"The subjective value or satisfaction derived from an outcome",
+   korean:"효용 (심리적 가치)",
+   bookContext:'"The concept of utility... was intended to capture the psychological value of outcomes, not just their monetary value."',
+   chapter:"Ch. 25 · Bernoulli's Errors",tags:["Prospect Theory","Statistics"],difficulty:"medium"},
+  {id:45,word:"risk aversion",part:"n. phrase",phonetic:"/rɪsk əˈvɜːrʒən/",
+   definition:"Preferring a certain outcome over a gamble with equal or higher expected value",
+   korean:"위험 회피",
+   bookContext:'"Risk aversion: people prefer a sure gain to a gamble with the same expected value because the pain of losing outweighs the pleasure of winning."',
+   chapter:"Ch. 29 · The Fourfold Pattern",tags:["Prospect Theory","Judgment"],difficulty:"medium"},
+  {id:46,word:"risk seeking",part:"n. phrase",phonetic:"/rɪsk ˈsiːkɪŋ/",
+   definition:"Preferring a gamble over a sure loss of equal expected value",
+   korean:"위험 추구",
+   bookContext:'"When faced with bad options, people take chances — risk seeking in the domain of losses is a robust finding."',
+   chapter:"Ch. 29 · The Fourfold Pattern",tags:["Prospect Theory","Judgment"],difficulty:"medium"},
+  {id:47,word:"fourfold pattern",part:"n. phrase",phonetic:"/ˈfɔːrfoʊld ˈpætərn/",
+   definition:"The four combinations of risk attitude depending on whether outcomes are gains/losses and high/low probability",
+   korean:"네 가지 패턴",
+   bookContext:'"The fourfold pattern of preferences... explains why people simultaneously buy insurance and lottery tickets."',
+   chapter:"Ch. 29 · The Fourfold Pattern",tags:["Prospect Theory","Core Concept"],difficulty:"hard"},
+  {id:48,word:"mental accounting",part:"n. phrase",phonetic:"/ˈmentl əˈkaʊntɪŋ/",
+   definition:"Treating money differently depending on its source or intended use",
+   korean:"심적 회계",
+   bookContext:'"Mental accounting: the tendency to treat sums of money differently depending on how they are categorized."',
+   chapter:"Ch. 32 · Keeping Score",tags:["Prospect Theory","Bias"],difficulty:"medium"},
+  {id:49,word:"narrow framing",part:"n. phrase",phonetic:"/ˈnæroʊ ˈfreɪmɪŋ/",
+   definition:"Evaluating each decision in isolation rather than as part of a broader portfolio",
+   korean:"좁은 틀 짜기",
+   bookContext:'"Narrow framing: a disposition to treat each problem as unique, ignoring the broader context."',
+   chapter:"Ch. 32 · Keeping Score",tags:["Prospect Theory","Judgment"],difficulty:"hard"},
+  {id:50,word:"broad framing",part:"n. phrase",phonetic:"/brɔːd ˈfreɪmɪŋ/",
+   definition:"Viewing many decisions together as a single policy to reduce the effect of loss aversion",
+   korean:"넓은 틀 짜기",
+   bookContext:'"Broad framing... reduces the emotional impact of each gamble and makes it easier to accept a favorable bet."',
+   chapter:"Ch. 32 · Keeping Score",tags:["Prospect Theory","Judgment"],difficulty:"hard"},
+
+  // ── JUDGMENT & STATISTICS ──
+  {id:51,word:"statistical thinking",part:"n. phrase",phonetic:"/stəˈtɪstɪkəl ˈθɪŋkɪŋ/",
+   definition:"Reasoning about populations and distributions rather than individual cases",
+   korean:"통계적 사고",
+   bookContext:'"Statistical thinking... requires seeing cases as a sample from a larger population, which does not come naturally to System 1."',
+   chapter:"Ch. 17 · Regression to the Mean",tags:["Statistics","System 2"],difficulty:"medium"},
+  {id:52,word:"inside view",part:"n. phrase",phonetic:"/ɪnˈsaɪd vjuː/",
+   definition:"Forecasting by focusing on the specific case at hand, ignoring base rates",
+   korean:"내부 시각",
+   bookContext:'"The inside view... focuses on our particular circumstances and searches for evidence in our own experience."',
+   chapter:"Ch. 23 · The Outside View",tags:["Judgment","Fallacy"],difficulty:"medium"},
+  {id:53,word:"outside view",part:"n. phrase",phonetic:"/ˈaʊtsaɪd vjuː/",
+   definition:"Forecasting by using base rates from similar cases rather than case-specific details",
+   korean:"외부 시각",
+   bookContext:'"The outside view... asks what happened in similar situations, and uses that class of outcomes as a reference."',
+   chapter:"Ch. 23 · The Outside View",tags:["Judgment","Statistics"],difficulty:"medium"},
+  {id:54,word:"reference class forecasting",part:"n. phrase",phonetic:"/ˈrefərəns klɑːs ˈfɔːrkɑːstɪŋ/",
+   definition:"Predicting outcomes by comparing to a reference class of similar past cases",
+   korean:"참조 집단 예측",
+   bookContext:'"Reference class forecasting is the cure for the planning fallacy: identify a reference class of similar projects and use their outcomes as a baseline."',
+   chapter:"Ch. 23 · The Outside View",tags:["Statistics","Judgment"],difficulty:"hard"},
+  {id:55,word:"sample size neglect",part:"n. phrase",phonetic:"/ˈsæmpl saɪz nɪˈɡlekt/",
+   definition:"Failing to account for how sample size affects the reliability of data",
+   korean:"표본 크기 무시",
+   bookContext:'"People are not adequately sensitive to sample size... a small sample is treated as equally informative as a large one."',
+   chapter:"Ch. 10 · The Law of Small Numbers",tags:["Statistics","Bias"],difficulty:"hard"},
+  {id:56,word:"law of small numbers",part:"n. phrase",phonetic:"/lɔː əv smɔːl ˈnʌmbərz/",
+   definition:"The mistaken belief that small samples will mirror the characteristics of large ones",
+   korean:"소수의 법칙",
+   bookContext:'"The law of small numbers: people exaggerate the likelihood of extreme results in small samples."',
+   chapter:"Ch. 10 · The Law of Small Numbers",tags:["Statistics","Fallacy"],difficulty:"hard"},
+  {id:57,word:"causal thinking",part:"n. phrase",phonetic:"/ˈkɔːzəl ˈθɪŋkɪŋ/",
+   definition:"The tendency to seek cause-and-effect explanations even for random events",
+   korean:"인과적 사고",
+   bookContext:'"Causal thinking... is natural to System 1, but it produces errors when randomness is actually at play."',
+   chapter:"Ch. 17 · Regression to the Mean",tags:["System 1","Fallacy"],difficulty:"medium"},
+  {id:58,word:"correlation",part:"n.",phonetic:"/ˌkɒrəˈleɪʃən/",
+   definition:"A statistical relationship between two variables, which does not imply causation",
+   korean:"상관관계",
+   bookContext:'"Correlation... is the statistical concept that captures the relationship between two measures — and it is easily confused with causation."',
+   chapter:"Ch. 17 · Regression to the Mean",tags:["Statistics","Core Concept"],difficulty:"easy"},
+  {id:59,word:"expert intuition",part:"n. phrase",phonetic:"/ˈekspɜːrt ɪntjuˈɪʃən/",
+   definition:"Reliable fast thinking built through years of practice in a regular, predictable environment",
+   korean:"전문가 직관",
+   bookContext:'"Expert intuition... is genuine and can be trusted when the environment is regular enough and there has been enough practice."',
+   chapter:"Ch. 22 · Expert Intuition",tags:["System 1","Judgment"],difficulty:"medium"},
+  {id:60,word:"feedback",part:"n.",phonetic:"/ˈfiːdbæk/",
+   definition:"Information about outcomes that allows learning and improvement over time",
+   korean:"피드백",
+   bookContext:'"Accurate feedback is the foundation of learning... without it, even experienced professionals cannot improve their intuitions."',
+   chapter:"Ch. 22 · Expert Intuition",tags:["Judgment","System 1"],difficulty:"easy"},
+
+  // ── VOCABULARY (KEY WORDS FROM THE BOOK) ──
+  {id:61,word:"coherent",part:"adj.",phonetic:"/koʊˈhɪərənt/",
+   definition:"Logically consistent and forming a unified whole",
+   korean:"일관성 있는, 논리적으로 연결된",
+   bookContext:'"A coherent story... is not necessarily a true story; System 1 is designed to jump to the most coherent conclusion."',
+   chapter:"Ch. 7 · A Machine for Jumping to Conclusions",tags:["Vocabulary","System 1"],difficulty:"easy"},
+  {id:62,word:"plausible",part:"adj.",phonetic:"/ˈplɔːzɪbəl/",
+   definition:"Seeming reasonable or probable; appearing to be true",
+   korean:"그럴듯한, 타당해 보이는",
+   bookContext:'"The most plausible story is not necessarily the most likely... but System 1 treats plausibility as probability."',
+   chapter:"Ch. 7 · A Machine for Jumping to Conclusions",tags:["Vocabulary","System 1"],difficulty:"easy"},
+  {id:63,word:"salient",part:"adj.",phonetic:"/ˈseɪliənt/",
+   definition:"Particularly noticeable or important; standing out from the rest",
+   korean:"두드러진, 현저한",
+   bookContext:'"A salient event attracts attention and is likely to be retrieved from memory, making it feel more frequent than it truly is."',
+   chapter:"Ch. 12 · Availability",tags:["Vocabulary","Bias"],difficulty:"medium"},
+  {id:64,word:"spontaneous",part:"adj.",phonetic:"/spɒnˈteɪniəs/",
+   definition:"Occurring naturally without planning or conscious effort",
+   korean:"자발적인, 무의식적으로 일어나는",
+   bookContext:'"Spontaneous impressions arise from System 1... they are not chosen but simply occur."',
+   chapter:"Ch. 4 · The Associative Machine",tags:["Vocabulary","System 1"],difficulty:"medium"},
+  {id:65,word:"deliberate",part:"adj.",phonetic:"/dɪˈlɪbərɪt/",
+   definition:"Done consciously and intentionally; carefully considered",
+   korean:"의도적인, 심사숙고한",
+   bookContext:'"Deliberate thinking is the domain of System 2... it requires attention and effort."',
+   chapter:"Ch. 1 · The Characters of the Story",tags:["Vocabulary","System 2"],difficulty:"easy"},
+  {id:66,word:"intuition",part:"n.",phonetic:"/ˌɪntjuˈɪʃən/",
+   definition:"The ability to understand something immediately, without conscious reasoning",
+   korean:"직관",
+   bookContext:'"Intuition is nothing more and nothing less than recognition — a feeling that comes from stored patterns, not magic."',
+   chapter:"Ch. 22 · Expert Intuition",tags:["Vocabulary","System 1"],difficulty:"easy"},
+  {id:67,word:"inference",part:"n.",phonetic:"/ˈɪnfərəns/",
+   definition:"A conclusion reached by reasoning from evidence",
+   korean:"추론, 추리",
+   bookContext:'"System 1 makes inferences quickly and automatically — sometimes correctly, sometimes not."',
+   chapter:"Ch. 7 · A Machine for Jumping to Conclusions",tags:["Vocabulary","System 1"],difficulty:"medium"},
+  {id:68,word:"susceptible",part:"adj.",phonetic:"/səˈseptɪbəl/",
+   definition:"Likely to be influenced by or affected by something",
+   korean:"영향 받기 쉬운, 취약한",
+   bookContext:'"We are all susceptible to cognitive biases — even those who know about them cannot fully escape them."',
+   chapter:"Ch. 24 · The Engine of Capitalism",tags:["Vocabulary","Bias"],difficulty:"medium"},
+  {id:69,word:"pervasive",part:"adj.",phonetic:"/pəˈveɪsɪv/",
+   definition:"Spreading widely throughout an area or group; present everywhere",
+   korean:"만연한, 널리 퍼져 있는",
+   bookContext:'"Cognitive biases are pervasive — they affect experts and laypeople alike, in every domain."',
+   chapter:"Ch. 24 · The Engine of Capitalism",tags:["Vocabulary","Bias"],difficulty:"medium"},
+  {id:70,word:"discrepancy",part:"n.",phonetic:"/dɪˈskrepənsi/",
+   definition:"A difference or inconsistency between two things that should be the same",
+   korean:"불일치, 차이",
+   bookContext:'"The discrepancy between the remembered experience and the actual experience is a central puzzle of the two-self model."',
+   chapter:"Ch. 35 · Two Selves",tags:["Vocabulary","Experience"],difficulty:"medium"},
+  {id:71,word:"arbitrary",part:"adj.",phonetic:"/ˈɑːrbɪtreri/",
+   definition:"Based on random choice or personal whim rather than any reason or system",
+   korean:"임의적인, 자의적인",
+   bookContext:'"Anchors can be completely arbitrary numbers — and still exert a powerful pull on our estimates."',
+   chapter:"Ch. 11 · Anchoring",tags:["Vocabulary","Bias"],difficulty:"easy"},
+  {id:72,word:"disposition",part:"n.",phonetic:"/ˌdɪspəˈzɪʃən/",
+   definition:"A person's inherent qualities of mind or character; a tendency",
+   korean:"성향, 기질",
+   bookContext:'"The disposition to see patterns in randomness is so powerful that it creates illusions of skill where none exist."',
+   chapter:"Ch. 20 · The Illusion of Validity",tags:["Vocabulary","System 1"],difficulty:"medium"},
+  {id:73,word:"visceral",part:"adj.",phonetic:"/ˈvɪsərəl/",
+   definition:"Relating to deep, instinctive feelings rather than intellect",
+   korean:"본능적인, 직감적인",
+   bookContext:'"Visceral responses to risk... are driven by System 1, which responds to the vividness of images, not probabilities."',
+   chapter:"Ch. 13 · Availability, Emotion, and Risk",tags:["Vocabulary","Emotion"],difficulty:"hard"},
+  {id:74,word:"asymmetry",part:"n.",phonetic:"/eɪˈsɪmɪtri/",
+   definition:"A lack of equality between two things; an imbalance",
+   korean:"비대칭성",
+   bookContext:'"The asymmetry of gains and losses is the cornerstone of prospect theory — losses hurt more than gains please."',
+   chapter:"Ch. 26 · Prospect Theory",tags:["Vocabulary","Prospect Theory"],difficulty:"medium"},
+  {id:75,word:"fallibility",part:"n.",phonetic:"/ˌfæləˈbɪlɪti/",
+   definition:"The tendency to make mistakes; the quality of being capable of error",
+   korean:"오류 가능성, 실수하기 쉬운 성질",
+   bookContext:'"Recognizing our fallibility is the first step toward making better decisions."',
+   chapter:"Ch. 24 · The Engine of Capitalism",tags:["Vocabulary","Judgment"],difficulty:"hard"},
+
+  // ── EXPERIENCE & WELL-BEING ──
+  {id:76,word:"experiencing self",part:"n. phrase",phonetic:"/ɪkˈspɪəriənsɪŋ self/",
+   definition:"The part of us that lives through moment-to-moment experiences",
+   korean:"경험하는 자아",
+   bookContext:'"The experiencing self... lives in the present; it has no past and no future."',
+   chapter:"Ch. 35 · Two Selves",tags:["Core Concept","Experience"],difficulty:"medium"},
+  {id:77,word:"remembering self",part:"n. phrase",phonetic:"/rɪˈmembərɪŋ self/",
+   definition:"The part of us that keeps score, creates narratives, and makes decisions based on memories",
+   korean:"기억하는 자아",
+   bookContext:'"The remembering self... is the one that makes decisions, that tells our stories, that dominates our experience."',
+   chapter:"Ch. 35 · Two Selves",tags:["Core Concept","Experience"],difficulty:"medium"},
+  {id:78,word:"duration neglect",part:"n. phrase",phonetic:"/djʊˈreɪʃən nɪˈɡlekt/",
+   definition:"The tendency to ignore how long an experience lasted when evaluating it",
+   korean:"지속 시간 무시",
+   bookContext:'"Duration neglect: the duration of the experience has little effect on the remembered evaluation."',
+   chapter:"Ch. 35 · Two Selves",tags:["Bias","Experience"],difficulty:"hard"},
+  {id:79,word:"well-being",part:"n.",phonetic:"/ˌwel ˈbiːɪŋ/",
+   definition:"The state of being comfortable, healthy, or happy",
+   korean:"행복, 안녕감",
+   bookContext:'"Two concepts of well-being: the well-being of the experiencing self... and the well-being of the remembering self."',
+   chapter:"Ch. 37 · Experienced Well-Being",tags:["Core Concept","Experience"],difficulty:"easy"},
+  {id:80,word:"hedonic treadmill",part:"n. phrase",phonetic:"/hɪˈdɒnɪk ˈtredmɪl/",
+   definition:"The tendency to return to a stable level of happiness after major life changes",
+   korean:"쾌락 적응 (헤도닉 트레드밀)",
+   bookContext:'"People adapt to circumstances — both good and bad — returning to a baseline level of happiness, as if on a hedonic treadmill."',
+   chapter:"Ch. 37 · Experienced Well-Being",tags:["Experience","Bias"],difficulty:"hard"},
+  {id:81,word:"focusing illusion",part:"n. phrase",phonetic:"/ˈfoʊkəsɪŋ ɪˈluːʒən/",
+   definition:"The error of overestimating the importance of whatever you are currently thinking about",
+   korean:"초점 착각",
+   bookContext:'"Nothing in life is as important as you think it is when you are thinking about it — this is the focusing illusion."',
+   chapter:"Ch. 38 · Thinking About Life",tags:["Bias","Experience"],difficulty:"medium"},
+  {id:82,word:"adaptation",part:"n.",phonetic:"/ˌædæpˈteɪʃən/",
+   definition:"The process by which people adjust to new circumstances, reducing their emotional impact",
+   korean:"적응",
+   bookContext:'"Adaptation... explains why lottery winners and paraplegics report similar levels of happiness a year after their life-changing events."',
+   chapter:"Ch. 37 · Experienced Well-Being",tags:["Experience","Core Concept"],difficulty:"easy"},
+
+  // ── ADVANCED VOCABULARY ──
+  {id:83,word:"extraneous",part:"adj.",phonetic:"/ɪkˈstreɪniəs/",
+   definition:"Irrelevant or unrelated to the matter at hand",
+   korean:"관련 없는, 외부적인",
+   bookContext:'"Extraneous factors — such as a pleasant smell — can improve mood and lead to better judgments, even on unrelated tasks."',
+   chapter:"Ch. 5 · Cognitive Ease",tags:["Vocabulary","Bias"],difficulty:"hard"},
+  {id:84,word:"induce",part:"v.",phonetic:"/ɪnˈdjuːs/",
+   definition:"To bring about or cause something to happen",
+   korean:"유발하다, 야기하다",
+   bookContext:'"Any number you consider as a possible answer will induce an anchoring effect."',
+   chapter:"Ch. 11 · Anchoring",tags:["Vocabulary","Bias"],difficulty:"medium"},
+  {id:85,word:"invoke",part:"v.",phonetic:"/ɪnˈvoʊk/",
+   definition:"To call upon or bring into use a concept, memory, or rule",
+   korean:"불러일으키다, 적용하다",
+   bookContext:'"System 2 can invoke rules to override the impulses of System 1 — but only when it is alert and engaged."',
+   chapter:"Ch. 3 · The Lazy Controller",tags:["Vocabulary","System 2"],difficulty:"medium"},
+  {id:86,word:"retrieval",part:"n.",phonetic:"/rɪˈtriːvəl/",
+   definition:"The process of accessing stored information from memory",
+   korean:"기억 인출",
+   bookContext:'"The ease of retrieval is itself diagnostic — if examples come to mind quickly, they feel more frequent."',
+   chapter:"Ch. 12 · Availability",tags:["Vocabulary","System 1"],difficulty:"medium"},
+  {id:87,word:"mundane",part:"adj.",phonetic:"/mʌnˈdeɪn/",
+   definition:"Lacking interest or excitement; ordinary and everyday",
+   korean:"평범한, 일상적인",
+   bookContext:'"Even mundane decisions — what to have for breakfast — can be influenced by priming effects we are unaware of."',
+   chapter:"Ch. 4 · The Associative Machine",tags:["Vocabulary","System 1"],difficulty:"medium"},
+  {id:88,word:"compelling",part:"adj.",phonetic:"/kəmˈpelɪŋ/",
+   definition:"Evoking strong interest or attention; convincing",
+   korean:"강렬한, 설득력 있는",
+   bookContext:'"A compelling causal story... may cause us to ignore statistical evidence that contradicts it."',
+   chapter:"Ch. 19 · The Illusion of Understanding",tags:["Vocabulary","System 1"],difficulty:"easy"},
+  {id:89,word:"incoherent",part:"adj.",phonetic:"/ˌɪnkoʊˈhɪərənt/",
+   definition:"Lacking logic or consistency; not making sense",
+   korean:"일관성 없는, 논리적이지 않은",
+   bookContext:'"An incoherent story triggers System 2 to work harder — but usually System 1 has already filled in the gaps."',
+   chapter:"Ch. 7 · A Machine for Jumping to Conclusions",tags:["Vocabulary","System 2"],difficulty:"medium"},
+  {id:90,word:"cumulative",part:"adj.",phonetic:"/ˈkjuːmjələtɪv/",
+   definition:"Increasing by successive additions; building up over time",
+   korean:"누적적인",
+   bookContext:'"The cumulative effect of small primes can be surprisingly large — and surprisingly hard to detect."',
+   chapter:"Ch. 4 · The Associative Machine",tags:["Vocabulary","System 1"],difficulty:"medium"},
+  {id:91,word:"implicit",part:"adj.",phonetic:"/ɪmˈplɪsɪt/",
+   definition:"Implied or understood without being directly stated",
+   korean:"암묵적인",
+   bookContext:'"Implicit associations — connections we are not aware of — shape our behavior and judgments in powerful ways."',
+   chapter:"Ch. 4 · The Associative Machine",tags:["Vocabulary","System 1"],difficulty:"medium"},
+  {id:92,word:"explicit",part:"adj.",phonetic:"/ɪkˈsplɪsɪt/",
+   definition:"Stated clearly and in detail; leaving no room for confusion",
+   korean:"명시적인, 분명한",
+   bookContext:'"Explicit reasoning belongs to System 2 — it is deliberate, slow, and available to conscious inspection."',
+   chapter:"Ch. 1 · The Characters of the Story",tags:["Vocabulary","System 2"],difficulty:"easy"},
+  {id:93,word:"robust",part:"adj.",phonetic:"/roʊˈbʌst/",
+   definition:"Strong, reliable, and unlikely to fail under varying conditions",
+   korean:"강건한, 안정적인",
+   bookContext:'"The findings of cognitive biases are robust — they replicate across cultures, age groups, and levels of education."',
+   chapter:"Ch. 29 · The Fourfold Pattern",tags:["Vocabulary","Statistics"],difficulty:"medium"},
+  {id:94,word:"negligible",part:"adj.",phonetic:"/ˈneɡlɪdʒɪbəl/",
+   definition:"So small or unimportant as to be not worth considering",
+   korean:"무시할 수 있는, 사소한",
+   bookContext:'"The effect of mere exposure is negligible when the stimulus is already familiar."',
+   chapter:"Ch. 5 · Cognitive Ease",tags:["Vocabulary","Bias"],difficulty:"medium"},
+  {id:95,word:"discern",part:"v.",phonetic:"/dɪˈsɜːrn/",
+   definition:"To perceive or recognize something; to make out with difficulty",
+   korean:"식별하다, 구분하다",
+   bookContext:'"It is difficult to discern when intuition is trustworthy and when it reflects cognitive bias."',
+   chapter:"Ch. 22 · Expert Intuition",tags:["Vocabulary","Judgment"],difficulty:"hard"},
+
+  // ── IDIOMS & PHRASES FROM THE BOOK ──
+  {id:96,word:"lead astray",part:"v. phrase",phonetic:"/liːd əˈstreɪ/",
+   definition:"To cause someone to make mistakes or go in the wrong direction",
+   korean:"잘못된 방향으로 이끌다, 오도하다",
+   bookContext:'"Heuristics serve us well most of the time, but lead us astray in others — particularly with matters of probability."',
+   chapter:"Ch. 11 · Anchoring",tags:["Idiom","Heuristic"],difficulty:"easy"},
+  {id:97,word:"jump to conclusions",part:"v. phrase",phonetic:"/dʒʌmp tə kənˈkluːʒənz/",
+   definition:"To make a hasty judgment before considering all the facts",
+   korean:"섣불리 결론 내리다",
+   bookContext:'"System 1 is a machine for jumping to conclusions — it produces a quick and confident answer without careful deliberation."',
+   chapter:"Ch. 7 · A Machine for Jumping to Conclusions",tags:["Idiom","System 1"],difficulty:"easy"},
+  {id:98,word:"go with one's gut",part:"v. phrase",phonetic:"/ɡoʊ wɪð wʌnz ɡʌt/",
+   definition:"To act on instinct or intuition rather than rational analysis",
+   korean:"직감을 따르다",
+   bookContext:'"Going with your gut is sometimes wise and sometimes disastrous — the key is knowing which environment you are in."',
+   chapter:"Ch. 22 · Expert Intuition",tags:["Idiom","System 1"],difficulty:"easy"},
+  {id:99,word:"take at face value",part:"v. phrase",phonetic:"/teɪk æt feɪs ˈvæljuː/",
+   definition:"To accept something as it appears without questioning deeper meaning",
+   korean:"액면 그대로 받아들이다",
+   bookContext:'"System 1 tends to take information at face value — it does not automatically question the source or the reliability of what it receives."',
+   chapter:"Ch. 7 · A Machine for Jumping to Conclusions",tags:["Idiom","System 1"],difficulty:"easy"},
+  {id:100,word:"weigh the evidence",part:"v. phrase",phonetic:"/weɪ ðə ˈevɪdəns/",
+   definition:"To carefully consider all available information before making a judgment",
+   korean:"증거를 신중히 따져보다",
+   bookContext:'"System 2 is supposed to weigh the evidence — but it is often lazy, accepting the coherent story that System 1 offers."',
+   chapter:"Ch. 3 · The Lazy Controller",tags:["Idiom","System 2"],difficulty:"easy"},
+  {id:101,word:"in hindsight",part:"adv. phrase",phonetic:"/ɪn ˈhaɪndˌsaɪt/",
+   definition:"Looking back on a past event with knowledge of how it turned out",
+   korean:"돌이켜보면, 사후에",
+   bookContext:'"In hindsight, every outcome seems inevitable — which is why we consistently overestimate our ability to predict the future."',
+   chapter:"Ch. 19 · The Illusion of Understanding",tags:["Idiom","Bias"],difficulty:"easy"},
+  {id:102,word:"rule of thumb",part:"n. phrase",phonetic:"/ruːl əv θʌm/",
+   definition:"A broadly accurate guide or principle based on experience rather than theory",
+   korean:"경험적 법칙, 어림잡아",
+   bookContext:'"A rule of thumb is a heuristic — useful in most cases, but capable of producing systematic errors."',
+   chapter:"Ch. 11 · Anchoring",tags:["Idiom","Heuristic"],difficulty:"easy"},
+  {id:103,word:"bear in mind",part:"v. phrase",phonetic:"/beər ɪn maɪnd/",
+   definition:"To remember or consider something when making decisions",
+   korean:"명심하다, 기억해 두다",
+   bookContext:'"Bear in mind that your intuitive impressions are likely to be less accurate than they feel."',
+   chapter:"Ch. 22 · Expert Intuition",tags:["Idiom","System 2"],difficulty:"easy"},
+  {id:104,word:"on reflection",part:"adv. phrase",phonetic:"/ɒn rɪˈflekʃən/",
+   definition:"After careful thought and consideration",
+   korean:"곰곰이 생각해보면, 재고해보면",
+   bookContext:'"On reflection, most people recognize the conjunction fallacy — but their initial intuition had already been wrong."',
+   chapter:"Ch. 15 · Linda",tags:["Idiom","System 2"],difficulty:"medium"},
+  {id:105,word:"at odds with",part:"prep. phrase",phonetic:"/æt ɒdz wɪð/",
+   definition:"In conflict or disagreement with; contradicting",
+   korean:"~와 상충되는, ~와 맞지 않는",
+   bookContext:'"Our intuitive judgments are often at odds with the statistical facts — and we rarely notice the contradiction."',
+   chapter:"Ch. 14 · Tom W's Specialty",tags:["Idiom","Judgment"],difficulty:"medium"},
+  {id:106,word:"make up one's mind",part:"v. phrase",phonetic:"/meɪk ʌp wʌnz maɪnd/",
+   definition:"To reach a decision after considering options",
+   korean:"결심하다, 마음을 정하다",
+   bookContext:'"Once System 1 has made up its mind, System 2 tends to look for supporting evidence rather than challenging the conclusion."',
+   chapter:"Ch. 7 · A Machine for Jumping to Conclusions",tags:["Idiom","System 1"],difficulty:"easy"},
+  {id:107,word:"call into question",part:"v. phrase",phonetic:"/kɔːl ˈɪntə ˈkwestʃən/",
+   definition:"To express doubt about; to challenge the validity of something",
+   korean:"의문을 제기하다, 의심하다",
+   bookContext:'"The research on cognitive biases calls into question the reliability of expert judgment in many domains."',
+   chapter:"Ch. 20 · The Illusion of Validity",tags:["Idiom","Judgment"],difficulty:"medium"},
+  {id:108,word:"prone to",part:"adj. phrase",phonetic:"/proʊn tuː/",
+   definition:"Likely to suffer from, do, or experience something",
+   korean:"~하기 쉬운, ~의 경향이 있는",
+   bookContext:'"We are all prone to the planning fallacy — optimistic forecasts that ignore base rates and past failures."',
+   chapter:"Ch. 23 · The Outside View",tags:["Idiom","Bias"],difficulty:"easy"},
+  {id:109,word:"cut through",part:"v. phrase",phonetic:"/kʌt θruː/",
+   definition:"To deal with or get past something, especially a difficulty or confusion",
+   korean:"꿰뚫다, 돌파하다",
+   bookContext:'"Statistical thinking can cut through the noise of individual cases and reveal the true signal."',
+   chapter:"Ch. 17 · Regression to the Mean",tags:["Idiom","Statistics"],difficulty:"medium"},
+  {id:110,word:"hold sway",part:"v. phrase",phonetic:"/hoʊld sweɪ/",
+   definition:"To have great power or influence over someone or something",
+   korean:"지배하다, 강한 영향력을 갖다",
+   bookContext:'"System 1 holds sway over most of our daily decisions — its impressions flow effortlessly into behavior."',
+   chapter:"Ch. 1 · The Characters of the Story",tags:["Idiom","System 1"],difficulty:"hard"},
+
+  // ── ADDITIONAL KEY TERMS ──
+  {id:111,word:"cognitive illusion",part:"n. phrase",phonetic:"/ˈkɒɡnɪtɪv ɪˈluːʒən/",
+   definition:"A systematic error in thinking that persists even when you are aware of it",
+   korean:"인지적 착각",
+   bookContext:'"Cognitive illusions can be more stubborn than visual illusions — knowing about the bias does not eliminate it."',
+   chapter:"Ch. 1 · The Characters of the Story",tags:["Core Concept","Bias"],difficulty:"medium"},
+  {id:112,word:"noise",part:"n.",phonetic:"/nɔɪz/",
+   definition:"Random variability in judgments that should ideally be the same",
+   korean:"잡음 (판단의 무작위 변동)",
+   bookContext:'"Noise is variability in judgments that should be identical... it is different from bias, but equally costly."',
+   chapter:"Ch. 21 · Intuitions vs. Formulas",tags:["Statistics","Core Concept"],difficulty:"hard"},
+  {id:113,word:"signal",part:"n.",phonetic:"/ˈsɪɡnəl/",
+   definition:"The meaningful information embedded within data, as opposed to random noise",
+   korean:"신호 (의미 있는 정보)",
+   bookContext:'"The goal of statistical analysis is to extract the signal from the noise — to see what is real amid the random variation."',
+   chapter:"Ch. 10 · The Law of Small Numbers",tags:["Statistics","Core Concept"],difficulty:"easy"},
+  {id:114,word:"formula",part:"n.",phonetic:"/ˈfɔːrmjələ/",
+   definition:"A fixed procedure or set of rules used to make a decision or prediction",
+   korean:"공식, 알고리즘",
+   bookContext:'"Simple formulas often outperform expert judgment because they are immune to noise and the inconsistency of human intuition."',
+   chapter:"Ch. 21 · Intuitions vs. Formulas",tags:["Judgment","Statistics"],difficulty:"easy"},
+  {id:115,word:"valid",part:"adj.",phonetic:"/ˈvælɪd/",
+   definition:"Actually producing the correct result; logically or factually sound",
+   korean:"유효한, 타당한",
+   bookContext:'"A valid intuition requires a regular environment and sufficient practice — two conditions that are often absent."',
+   chapter:"Ch. 22 · Expert Intuition",tags:["Vocabulary","Judgment"],difficulty:"easy"},
+  {id:116,word:"override",part:"v.",phonetic:"/ˌoʊvərˈraɪd/",
+   definition:"To use authority or effort to reject or stop something from happening",
+   korean:"무시하다, 우선하다, 제압하다",
+   bookContext:'"System 2 can override the impulses of System 1 — but only when it is actively engaged and not depleted."',
+   chapter:"Ch. 3 · The Lazy Controller",tags:["Vocabulary","System 2"],difficulty:"medium"},
+  {id:117,word:"disposition to believe",part:"n. phrase",phonetic:"/ˌdɪspəˈzɪʃən tə bɪˈliːv/",
+   definition:"The default tendency to accept information as true without critical scrutiny",
+   korean:"믿으려는 성향",
+   bookContext:'"The disposition to believe... is the default mode of System 1; unbelief requires System 2 effort."',
+   chapter:"Ch. 7 · A Machine for Jumping to Conclusions",tags:["System 1","Core Concept"],difficulty:"hard"},
+  {id:118,word:"suppression",part:"n.",phonetic:"/səˈpreʃən/",
+   definition:"The act of consciously holding back or inhibiting a thought or impulse",
+   korean:"억제, 억압",
+   bookContext:'"Suppression of an intuition is costly — it requires mental effort and depletes the System 2 resources available for other tasks."',
+   chapter:"Ch. 3 · The Lazy Controller",tags:["Vocabulary","System 2"],difficulty:"hard"},
+  {id:119,word:"anchor",part:"v.",phonetic:"/ˈæŋkər/",
+   definition:"To fix a judgment to an initial value, making adjustment from it insufficient",
+   korean:"기준점에 고정시키다",
+   bookContext:'"We anchor on the first number we hear and adjust insufficiently — even when the anchor is clearly arbitrary."',
+   chapter:"Ch. 11 · Anchoring",tags:["Vocabulary","Bias"],difficulty:"easy"},
+  {id:120,word:"calibration",part:"n.",phonetic:"/ˌkælɪˈbreɪʃən/",
+   definition:"The alignment between one's confidence in a judgment and its actual accuracy",
+   korean:"보정, 정확도와 확신의 일치",
+   bookContext:'"Good calibration means your confidence intervals are accurate — if you say 90% confident, you should be right 90% of the time."',
+   chapter:"Ch. 24 · The Engine of Capitalism",tags:["Statistics","Judgment"],difficulty:"hard"},
+];
+
+const ALL_TAGS = ["All","Core Concept","System 1","Bias","Fallacy","Heuristic","Prospect Theory","Statistics","Judgment","Emotion","Experience"];
+const DIFF = {easy:{bg:"#d1fae5",text:"#065f46",label:"Easy"},medium:{bg:"#fef3c7",text:"#92400e",label:"Medium"},hard:{bg:"#fee2e2",text:"#991b1b",label:"Hard"}};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = {
+  tab: "flashcard",
+  filterTag: "All",
+  searchQ: "",
+  filterMode: "all",
+  cardIdx: 0,
+  learnedIds: new Set(JSON.parse(localStorage.getItem("learned")||"[]")),
+  wrongIds:   new Set(JSON.parse(localStorage.getItem("wrong")||"[]")),
+  expandedId: null,
+  quiz: null,    // {pool, idx, selected, score, done, options}
+};
+
+function save(){
+  localStorage.setItem("learned", JSON.stringify([...state.learnedIds]));
+  localStorage.setItem("wrong",   JSON.stringify([...state.wrongIds]));
+}
+
+function filtered(){
+  return VOCAB.filter(w => {
+    const matchTag  = state.filterTag==="All" || w.tags.includes(state.filterTag);
+    const matchQ    = w.word.toLowerCase().includes(state.searchQ.toLowerCase()) || w.korean.includes(state.searchQ);
+    const matchMode = state.filterMode==="all" ? true
+      : state.filterMode==="unseen" ? !state.learnedIds.has(w.id)
+      : state.wrongIds.has(w.id);
+    return matchTag && matchQ && matchMode;
+  });
+}
+
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-.5); }
+
+function makeOptions(current){
+  const others = shuffle(VOCAB.filter(x=>x.id!==current.id)).slice(0,3);
+  return shuffle([...others, current]);
+}
+
+function initQuiz(){
+  const pool = shuffle(VOCAB);
+  state.quiz = {
+    pool, idx:0, selected:null,
+    score:{correct:0,wrong:0}, done:false,
+    options: makeOptions(pool[0]),
+  };
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render(){
+  const app = document.getElementById("app");
+  app.innerHTML = buildHTML();
+  attachEvents();
+}
+
+function buildHTML(){
+  const list = filtered();
+  const pct  = Math.round((state.learnedIds.size/VOCAB.length)*100);
+  const TABS = [
+    {id:"flashcard",emoji:"🃏",label:"Flashcard"},
+    {id:"list",     emoji:"📋",label:"Word List"},
+    {id:"quiz",     emoji:"🧠",label:"Quiz"},
+    {id:"stats",    emoji:"📊",label:"Progress"},
+  ];
+
+  return `
+  <div style="min-height:100vh;min-height:100dvh;background:#f0f0f7">
+
+    <!-- HEADER -->
+    <div class="header" style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4c1d95 100%);padding-left:20px;padding-right:20px;padding-bottom:0">
+      <div style="max-width:640px;margin:0 auto">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span style="color:#a5b4fc;font-size:11px;font-weight:700;letter-spacing:.08em">THINKING, FAST AND SLOW</span>
+        </div>
+        <div style="color:#fff;font-size:21px;font-weight:800;margin-bottom:3px">Vocabulary Trainer</div>
+        <div style="color:#c7d2fe;font-size:12px;margin-bottom:12px">${state.learnedIds.size}/${VOCAB.length} mastered · ${pct}%</div>
+        <div style="width:100%;height:5px;background:rgba(255,255,255,.15);border-radius:4px;margin-bottom:16px">
+          <div class="prog-fill" style="height:100%;width:${pct}%;background:#818cf8;border-radius:4px"></div>
+        </div>
+        <div style="display:flex;gap:3px">
+          ${TABS.map(t=>`
+          <button data-tab="${t.id}" style="flex:1;padding:10px 2px;border:none;border-radius:10px 10px 0 0;
+            background:${state.tab===t.id?"#fff":"transparent"};
+            color:${state.tab===t.id?"#1e1b4b":"#a5b4fc"};
+            font-weight:700;font-size:11px;transition:all .2s">
+            <div>${t.emoji}</div><div style="margin-top:2px">${t.label}</div>
+          </button>`).join("")}
+        </div>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="body-pad" style="max-width:640px;margin:0 auto">
+      ${state.tab==="flashcard" ? buildFlashcard(list)
+      : state.tab==="list"      ? buildList(list)
+      : state.tab==="quiz"      ? buildQuiz()
+      :                           buildStats()}
+    </div>
+  </div>`;
+}
+
+// ── Flashcard tab ─────────────────────────────────────────────────────────────
+function buildFlashcard(list){
+  const modes = [{id:"all",label:"All"},{id:"unseen",label:"Not yet learned"},{id:"hard",label:"Hard words"}];
+  const modeBar = `<div class="tag-scroll" style="margin-bottom:18px">
+    ${modes.map(m=>`<button data-mode="${m.id}" style="padding:6px 14px;border-radius:20px;border:none;white-space:nowrap;
+      background:${state.filterMode===m.id?"#4f46e5":"#e0e7ff"};
+      color:${state.filterMode===m.id?"#fff":"#4f46e5"};font-weight:600;font-size:13px">${m.label}</button>`).join("")}
+  </div>`;
+
+  if(list.length===0) return modeBar+`<div style="text-align:center;color:#71717a;padding:40px">No words in this filter 🎉</div>`;
+
+  const idx  = Math.min(state.cardIdx, list.length-1);
+  const word = list[idx];
+  const diff = DIFF[word.difficulty];
+  const isLearned = state.learnedIds.has(word.id);
+  const isWrong   = state.wrongIds.has(word.id);
+
+  return modeBar + `
+  <div style="text-align:center;color:#71717a;font-size:13px;margin-bottom:14px">${idx+1} / ${list.length}</div>
+
+  <div class="flip-container">
+    <div id="fc" class="flip-card${word._flipped?"flipped":""}">
+      <!-- Front -->
+      <div class="flip-front">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <span style="background:${diff.bg};color:${diff.text};font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase">${diff.label}</span>
+          <span style="color:#a5b4fc;font-size:11px">${word.chapter}</span>
+        </div>
+        <div style="text-align:center">
+          <div style="color:#c7d2fe;font-size:13px;margin-bottom:6px">${word.part}</div>
+          <div style="color:#fff;font-size:clamp(24px,7vw,38px);font-weight:800;letter-spacing:-.02em;line-height:1.15;font-family:Georgia,serif">${word.word}</div>
+          <div style="color:#818cf8;font-size:14px;margin-top:8px">${word.phonetic}</div>
+        </div>
+        <div style="display:flex;justify-content:center;align-items:center;gap:6px;color:#6366f1;font-size:13px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+          tap to reveal
+        </div>
+      </div>
+      <!-- Back -->
+      <div class="flip-back">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Definition</div>
+          <div style="font-size:15px;font-weight:600;color:#18181b;line-height:1.5">${word.definition}</div>
+        </div>
+        <div style="background:#f0f0ff;border-radius:12px;padding:10px 14px">
+          <div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">한국어</div>
+          <div style="font-size:15px;color:#3730a3;font-weight:600">${word.korean}</div>
+        </div>
+        <div style="background:#fffbeb;border-radius:12px;padding:10px 14px;flex:1">
+          <div style="font-size:11px;font-weight:700;color:#d97706;margin-bottom:5px">📖 In the book</div>
+          <div style="font-size:13px;color:#78350f;line-height:1.65;font-style:italic">${word.bookContext}</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button id="btn-wrong" style="flex:1;padding:10px 0;border-radius:12px;border:none;
+            background:${isWrong?"#fecaca":"#fee2e2"};color:#b91c1c;font-weight:700;font-size:14px">
+            ✕ Hard
+          </button>
+          <button id="btn-got" style="flex:1;padding:10px 0;border-radius:12px;border:none;
+            background:${isLearned?"#bbf7d0":"#d1fae5"};color:#065f46;font-weight:700;font-size:14px">
+            ✓ Got it!
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:center;gap:12px;margin-top:20px">
+    <button id="btn-prev" style="padding:10px 20px;border-radius:12px;border:1.5px solid #d4d4d8;background:#fff;font-weight:600;color:#3f3f46">← Prev</button>
+    <button id="btn-next" style="padding:10px 20px;border-radius:12px;border:none;background:#4f46e5;color:#fff;font-weight:600">Next →</button>
+  </div>`;
+}
+
+// ── Word List tab ─────────────────────────────────────────────────────────────
+function buildList(list){
+  const cards = list.map(w=>{
+    const exp = state.expandedId===w.id;
+    const diff = DIFF[w.difficulty];
+    const isLearned = state.learnedIds.has(w.id);
+    const isWrong   = state.wrongIds.has(w.id);
+    return `
+    <div data-expand="${w.id}" style="background:#fff;border-radius:16px;padding:16px 18px;
+      box-shadow:0 2px 12px rgba(0,0,0,.06);cursor:pointer;
+      border:1.5px solid ${isLearned?"#6ee7b7":isWrong?"#fca5a5":"transparent"}">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:17px;font-weight:800;color:#1e1b4b;font-family:Georgia,serif">${w.word}</span>
+            <span style="font-size:12px;color:#71717a">${w.part}</span>
+            <span style="background:${diff.bg};color:${diff.text};font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase">${diff.label}</span>
+          </div>
+          <div style="font-size:13px;color:#52525b;margin-top:2px">${w.korean}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button data-star="${w.id}" style="background:none;border:none;padding:4px;font-size:16px">
+            ${isLearned?"⭐":"☆"}
+          </button>
+          <span style="color:#d4d4d8;font-size:16px">${exp?"▲":"▽"}</span>
+        </div>
+      </div>
+      ${exp?`
+      <div style="margin-top:12px;border-top:1px solid #f4f4f5;padding-top:12px;display:flex;flex-direction:column;gap:10px">
+        <div><span style="font-size:11px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:.07em">Definition  </span>
+          <span style="font-size:14px;color:#27272a;line-height:1.55">${w.definition}</span></div>
+        <div style="background:#fffbeb;border-radius:10px;padding:10px 14px">
+          <div style="font-size:11px;font-weight:700;color:#d97706;margin-bottom:4px">📖 In the book</div>
+          <div style="font-size:13px;color:#92400e;font-style:italic;line-height:1.65">${w.bookContext}</div>
+          <div style="font-size:11px;color:#a16207;margin-top:6px">${w.chapter}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${w.tags.map(t=>`<span style="background:#ede9fe;color:#5b21b6;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600">${t}</span>`).join("")}
+        </div>
+      </div>`:""}
+    </div>`;
+  }).join("");
+
+  return `
+  <div style="position:relative;margin-bottom:12px">
+    <svg style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:#a1a1aa" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="search-input" value="${state.searchQ.replace(/"/g,'&quot;')}" placeholder="Search word or Korean..."
+      style="width:100%;padding:11px 14px 11px 36px;border-radius:12px;border:1.5px solid #e4e4e7;font-size:14px;outline:none"/>
+  </div>
+  <div class="tag-scroll" style="margin-bottom:14px">
+    ${ALL_TAGS.map(t=>`<button data-tag="${t}" style="padding:5px 12px;border-radius:20px;border:none;white-space:nowrap;
+      background:${state.filterTag===t?"#4f46e5":"#ede9fe"};
+      color:${state.filterTag===t?"#fff":"#5b21b6"};font-weight:600;font-size:12px">${t}</button>`).join("")}
+  </div>
+  <div style="color:#71717a;font-size:13px;margin-bottom:10px">${list.length} words</div>
+  <div style="display:flex;flex-direction:column;gap:10px">${cards}</div>`;
+}
+
+// ── Quiz tab ──────────────────────────────────────────────────────────────────
+function buildQuiz(){
+  if(!state.quiz) initQuiz();
+  const q = state.quiz;
+
+  if(q.done){
+    const total = q.score.correct+q.score.wrong;
+    const pct   = Math.round(q.score.correct/total*100);
+    return `
+    <div style="text-align:center;padding:40px 20px">
+      <div style="font-size:64px">${pct>=80?"🎉":pct>=50?"💪":"📚"}</div>
+      <div style="font-size:28px;font-weight:800;color:#1e1b4b;margin-top:12px">${pct}%</div>
+      <div style="color:#52525b;margin-top:6px">${q.score.correct} correct out of ${total}</div>
+      <button id="quiz-reset" style="margin-top:24px;background:#4f46e5;color:#fff;border:none;border-radius:12px;padding:12px 28px;font-weight:700;font-size:15px">
+        Try Again
+      </button>
+    </div>`;
+  }
+
+  const current = q.pool[q.idx];
+  const progress = Math.round((q.idx/q.pool.length)*100);
+
+  const optBtns = q.options.map(opt=>{
+    let bg="#fff",border="1.5px solid #e4e4e7",color="#1e1b4b";
+    if(q.selected!==null){
+      if(opt.id===current.id){bg="#d1fae5";border="1.5px solid #6ee7b7";color="#065f46";}
+      else if(opt.id===q.selected){bg="#fee2e2";border="1.5px solid #fca5a5";color="#991b1b";}
+    }
+    return `<button class="quiz-opt" data-opt="${opt.id}"
+      ${q.selected!==null?"disabled":""}
+      style="background:${bg};border:${border};color:${color};border-radius:12px;padding:14px 18px;
+      text-align:left;font-weight:700;font-size:15px;font-family:Georgia,serif;width:100%">
+      ${opt.word}
+    </button>`;
+  }).join("");
+
+  return `
+  <div style="background:#ede9fe;border-radius:14px;padding:12px 16px;margin-bottom:18px;font-size:14px;color:#5b21b6">
+    💡 Choose the word that matches the definition.
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:13px;color:#71717a">
+    <span>Question ${q.idx+1} / ${q.pool.length}</span>
+    <span>✅ ${q.score.correct}  ❌ ${q.score.wrong}</span>
+  </div>
+  <div style="height:4px;background:#e4e4e7;border-radius:4px;margin-bottom:20px">
+    <div style="height:100%;width:${progress}%;background:#4f46e5;border-radius:4px;transition:width .3s"></div>
+  </div>
+  <div style="background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:16px;padding:24px;margin-bottom:18px;text-align:center">
+    <div style="font-size:12px;color:#a5b4fc;margin-bottom:8px;font-weight:600">Which word matches this definition?</div>
+    <div style="font-size:15px;color:#e0e7ff;line-height:1.6">${current.definition}</div>
+    <div style="margin-top:8px;font-size:13px;color:#818cf8">${current.korean}</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">${optBtns}</div>`;
+}
+
+// ── Stats tab ─────────────────────────────────────────────────────────────────
+function buildStats(){
+  const cats = ["Core Concept","Bias","Fallacy","Heuristic","Prospect Theory"];
+  const catBars = cats.map(tag=>{
+    const total = VOCAB.filter(w=>w.tags.includes(tag)).length;
+    const done  = VOCAB.filter(w=>w.tags.includes(tag)&&state.learnedIds.has(w.id)).length;
+    const pct   = total ? Math.round(done/total*100) : 0;
+    return `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+        <span style="font-weight:600;color:#27272a">${tag}</span>
+        <span style="color:#71717a">${done}/${total}</span>
+      </div>
+      <div style="height:8px;background:#f4f4f5;border-radius:4px">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:4px;transition:width .4s"></div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const cards = [
+    {label:"Total Words",  val:VOCAB.length,                                          color:"#4f46e5",emoji:"📚"},
+    {label:"Mastered ⭐",  val:state.learnedIds.size,                                 color:"#059669",emoji:"✅"},
+    {label:"Need Practice",val:state.wrongIds.size,                                   color:"#dc2626",emoji:"🔁"},
+    {label:"Not Started",  val:VOCAB.length-state.learnedIds.size-state.wrongIds.size,color:"#d97706",emoji:"📖"},
+  ].map(s=>`
+    <div style="background:#fff;border-radius:16px;padding:18px 16px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+      <div style="font-size:24px">${s.emoji}</div>
+      <div style="font-size:26px;font-weight:800;color:${s.color};margin-top:4px">${s.val}</div>
+      <div style="font-size:13px;color:#71717a;margin-top:2px">${s.label}</div>
+    </div>`).join("");
+
+  return `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">${cards}</div>
+  <div style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:14px">
+    <div style="font-weight:700;color:#1e1b4b;margin-bottom:14px">Progress by Category</div>
+    ${catBars}
+  </div>
+  <button id="btn-reset-all" style="width:100%;padding:14px;border-radius:12px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-weight:700;font-size:14px">
+    Reset All Progress
+  </button>`;
+}
+
+// ─── EVENTS ──────────────────────────────────────────────────────────────────
+function attachEvents(){
+  // Tab switch
+  document.querySelectorAll("[data-tab]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      state.tab = btn.dataset.tab;
+      state.cardIdx = 0;
+      if(state.tab==="quiz") state.quiz = null;
+      render();
+    });
+  });
+
+  // Flashcard flip
+  const fc = document.getElementById("fc");
+  if(fc){
+    fc.addEventListener("click", e=>{
+      if(e.target.closest("#btn-wrong")||e.target.closest("#btn-got")) return;
+      fc.classList.toggle("flipped");
+    });
+  }
+
+  // Flashcard mark
+  const list = filtered();
+  const idx  = Math.min(state.cardIdx, list.length-1);
+  const btnWrong = document.getElementById("btn-wrong");
+  const btnGot   = document.getElementById("btn-got");
+  if(btnWrong) btnWrong.addEventListener("click", e=>{ e.stopPropagation(); markCard("wrong", list, idx); });
+  if(btnGot)   btnGot.addEventListener("click",   e=>{ e.stopPropagation(); markCard("learned", list, idx); });
+
+  // Flashcard prev/next
+  document.getElementById("btn-prev")?.addEventListener("click",()=>{ state.cardIdx=Math.max(0,state.cardIdx-1); render(); });
+  document.getElementById("btn-next")?.addEventListener("click",()=>{ state.cardIdx=Math.min(list.length-1,state.cardIdx+1); render(); });
+
+  // Filter mode (flashcard)
+  document.querySelectorAll("[data-mode]").forEach(btn=>{
+    btn.addEventListener("click",()=>{ state.filterMode=btn.dataset.mode; state.cardIdx=0; render(); });
+  });
+
+  // List: search
+  const si = document.getElementById("search-input");
+  if(si) si.addEventListener("input", e=>{ state.searchQ=e.target.value; render(); });
+
+  // List: tag filter
+  document.querySelectorAll("[data-tag]").forEach(btn=>{
+    btn.addEventListener("click",()=>{ state.filterTag=btn.dataset.tag; render(); });
+  });
+
+  // List: expand
+  document.querySelectorAll("[data-expand]").forEach(el=>{
+    el.addEventListener("click", e=>{
+      if(e.target.closest("[data-star]")) return;
+      const id = +el.dataset.expand;
+      state.expandedId = state.expandedId===id ? null : id;
+      render();
+    });
+  });
+
+  // List: star
+  document.querySelectorAll("[data-star]").forEach(btn=>{
+    btn.addEventListener("click", e=>{ e.stopPropagation();
+      const id = +btn.dataset.star;
+      if(state.learnedIds.has(id)) state.learnedIds.delete(id);
+      else state.learnedIds.add(id);
+      save(); render();
+    });
+  });
+
+  // Quiz options
+  document.querySelectorAll(".quiz-opt").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const q = state.quiz;
+      if(q.selected!==null||q.done) return;
+      const optId  = +btn.dataset.opt;
+      const current = q.pool[q.idx];
+      q.selected = optId;
+      if(optId===current.id) q.score.correct++; else q.score.wrong++;
+      render();
+      setTimeout(()=>{
+        if(q.idx+1>=q.pool.length){ q.done=true; }
+        else {
+          q.idx++;
+          q.selected=null;
+          q.options=makeOptions(q.pool[q.idx]);
+        }
+        render();
+      },1100);
+    });
+  });
+
+  // Quiz reset
+  document.getElementById("quiz-reset")?.addEventListener("click",()=>{ initQuiz(); render(); });
+
+  // Stats reset
+  document.getElementById("btn-reset-all")?.addEventListener("click",()=>{
+    if(confirm("Reset all progress?")){ state.learnedIds=new Set(); state.wrongIds=new Set(); save(); render(); }
+  });
+}
+
+function markCard(type, list, idx){
+  const word = list[idx];
+  if(!word) return;
+  if(type==="learned"){ state.learnedIds.add(word.id); state.wrongIds.delete(word.id); }
+  else { state.wrongIds.add(word.id); state.learnedIds.delete(word.id); }
+  save();
+  if(idx+1 < list.length) state.cardIdx++;
+  render();
+}
+
+// ─── SERVICE WORKER (inline, for PWA offline) ─────────────────────────────────
+const SW_CODE = `
+self.addEventListener('install',e=>{ self.skipWaiting(); });
+self.addEventListener('activate',e=>{ e.waitUntil(clients.claim()); });
+self.addEventListener('fetch',e=>{
+  e.respondWith(
+    caches.open('tfs-v1').then(cache=>
+      cache.match(e.request).then(cached=>{
+        const fresh = fetch(e.request).then(r=>{ cache.put(e.request,r.clone()); return r; }).catch(()=>cached);
+        return cached || fresh;
+      })
+    )
+  );
+});`;
+
+if('serviceWorker' in navigator){
+  const blob = new Blob([SW_CODE],{type:'application/javascript'});
+  const swURL = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swURL).catch(()=>{});
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
